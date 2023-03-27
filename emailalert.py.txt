@@ -1,0 +1,54 @@
+import requests
+from bs4 import BeautifulSoup
+import smtplib
+
+# function to extract product details and current price from Amazon website
+def check_price(URL):
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
+    page = requests.get(URL, headers=headers)
+
+    soup1 = BeautifulSoup(page.content, "html.parser")
+    soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
+
+    title = soup2.find(id='productTitle').get_text().strip()
+    price = soup2.find(id='priceblock_ourprice').get_text().strip()[1:]
+
+    converted_price = float(price.replace(',', ''))
+
+    return title, converted_price
+
+# function to send email to user when product price drops below target price
+def send_mail(title, URL, target_price):
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.ehlo()
+    server.starttls()
+    server.ehlo()
+
+    # Replace <email-id> and <password> with your email credentials
+    server.login('214g1a0518@srit.ac.in', '214G1A0518@srit')
+
+    subject = f"Price fell down for {title}"
+    body = f"Check the Amazon link: {URL}"
+    msg = f"Subject: {subject}\n\n{body}"
+
+    server.sendmail(
+        '<from-email>',
+        '<to-email>',
+        msg
+    )
+    print("Email has been sent!")
+    server.quit()
+
+# Replace <Amazon-product-url> with the URL of the Amazon product you want to track
+URL = 'https://amzn.eu/d/hDBHZzv'
+
+# Replace <target-price> with the price at which you want to receive an email alert
+target_price = 1000
+
+title, price = check_price(URL)
+
+if price < target_price:
+    send_mail(title, URL, target_price)
+else:
+    print("Price has not fallen below target price yet.")
